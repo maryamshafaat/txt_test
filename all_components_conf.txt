@@ -48,7 +48,7 @@ cat > web.conf
 [settings]
 startwebserver = false
 
-
+...
 
 maryam_all_indexer_base/metadata/ 
 
