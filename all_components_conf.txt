@@ -1,0 +1,232 @@
+++++++++++++++++++++++General Splunk+++++++++++++++++++++
+
+wget -O splunk-8.2.2.1-ae6821b7c64b-Linux-x86_64.tgz 'https://d7wz6hmoaavd0.cloudfront.net/products/splunk/releases/8.2.2.1/linux/splunk-8.2.2.1-ae6821b7c64b-Linux-x86_64.tgz'
+
+sudo  useradd -m -r splunk 
+sudo tar -xzf splunk-8.2.2.1-ae6821b7c64b-Linux-x86_64.tgz -C /opt
+cd /opt/
+sudo chown -R splunk:splunk splunk
+sudo su splunk
+/opt/splunk/bin/splunk start --accept-license
+
+++++++++++++++++++++++Forwarder+++++++++++++++++++++
+
+wget -O splunkforwarder-8.2.2.1-ae6821b7c64b-Linux-x86_64.tgz 'https://d7wz6hmoaavd0.cloudfront.net/products/universalforwarder/releases/8.2.2.1/linux/splunkforwarder-8.2.2.1-ae6821b7c64b-Linux-x86_64.tgz'
+
+sudo  useradd -m -r splunk
+sudo tar -xzf splunkforwarder-8.2.2.1-ae6821b7c64b-Linux-x86_64.tgz -C /opt
+cd /opt/
+sudo chown -R splunk:splunk splunkforwarder
+sudo su splunk
+/opt/splunkforwarder/bin/splunk start --accept-license
+
+===================================================
+Indexer=> receive port 9997
+===================================================
+
+
+/opt/splunk/etc/apps/maryam_all_indexer_base/local/
+
+1.
+cat > inputs.conf 
+[splunktcp://9997]
+
+2. 
+cat > app.conf
+[install]
+state = enabled
+
+[package]
+check_for_updates = false
+
+[ui]
+is_visible = false
+is_manageable = false
+
+3.
+cat > web.conf
+[settings]
+startwebserver = false
+
+
+
+maryam_all_indexer_base/metadata/ 
+
+1.
+cat > local.meta
+[]
+access = read : [ * ], write : [ admin ]
+export = system
+
+=========Apps==========
+
+/opt/splunkforwarder/etc/system/local/” and configure following”
+
+1.
+cat > outputs.conf
+[tcpout]
+defaultGroup = aws-idx
+
+[tcpout:aws-idx]
+server = Indexer_IPs:9997
+
+++++++++++++++++++++Search_Head++++++++++++++++++++++
+
+1.add a search peer and give the url of your indexer
+
+2.create an "outputs.conf" file in “/opt/splunk/etc/system/local/” and configure 
+ 	         outputs.conf
+                 [tcpout]
+                 defaultGroup = aws-idx
+
+                 [tcpout:aws-idx]
+                 server = Indexer_IPs:9997 
+                 exit
+
+++++++++++++++++++++++Monitoring+++++++++++++++++++
+
+1. distributed mode.
+
+2. add a search peer and give the url of your Indexer, Search_Head, Deployment_server ---> on port 8089
+
+role type change
+
+
++++++++++++++++++Deployment_Client++++++++++++++++++
+
+/opt/splunk/bin/splunk set deploy-poll IP_Deployment_server:8089
+
+------------------------------
+
+creat an app --> maryam_all_deployment_client
+/opt/splunk/etc/apps/
+
+/local/
+1.
+cat > deploymentclient.conf
+[target-broker:deploymentServer]
+targetUri = 172.31.2.195:8089
+
+2.
+cat > app.conf 
+[install]
+state = enabled
+
+[package]
+check_for_updates = false
+
+[ui]
+is_visible = false
+is_manageable = false
+
+/metadata/
+cat > local.meta
+[]
+access = read : [ * ], write : [ admin ]
+export = system
+
+ 
+cp -R /opt/splunk/etc/apps/Splunk_TA_nix/ /opt/splunk/etc/deployment-apps/
+
+
++++++++++++++++++Deploymen_server+++++++++++++++++++
+
+1. creat /opt/splunk/deployment-apps/
+
+2. Download "Splunk_Add_On_for_Unix_and_Linux" and copy it to your deployment-apps folder
+
+
+Search_Head "maryam_sh_node"
+
+1.
+cat > outputs.conf
+
+[tcpout]
+defaultGroup = aws-idx
+
+[tcpout:aws-idx]
+server = 172.31.3.160:9997 
+
+----------------------------------
+e.	“web.conf” and name it maryam_sh_base
+i.	Enable SSL for Splunk web.
+	[settings]
+	enableSplunkWebSSL = true
+
+
+=================================================
+
+Forwarder"" "maryam_iforwarderspws_output"
+             maryam_forwarders_output
+             "outputs.conf"
+    
+		[tcpout]
+		defaultGroup = aws-idx
+
+		[tcpout:aws-idx]
+		server = 172.31.3.160:9997
+
+
+===============================================
+Indexer"" maryam_all_indexer_base
+
+          --->/local/ inputs.conf 
+    
+             [splunktcp://9997]
+
+----------------------------------------
+            /local/ web.conf  
+
+		[settings]
+		startwebserver = false
+
+
+----------------------------------------
+
+            /local/ indexes.conf
+[linux_servers]
+homePath   = $SPLUNK_DB/linux_servers/db
+coldPath   = $SPLUNK_DB/linux_servers/colddb
+thawedPath = $SPLUNK_DB/linux_servers/thaweddb
+maxDataSize = 500
+
+-----------------------------------------
+           
+
+++++++++++++++++some general commands+++++++++++++++++++
+
+exit
+sudo su
+/opt/splunk/bin/splunk enable boot-start -user splunk
+
+sudo su splunk
+/opt/splunk/bin/splunk restart
+/opt/splunk/bin/splunk start
+/opt/splunk/bin/splunk status
+
+
+/opt/splunk/bin/splunk btool
+/opt/splunk/bin/splunk btool list -check
+
+[root@ip-172-31-22-22 opt]# passwd splunk
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
